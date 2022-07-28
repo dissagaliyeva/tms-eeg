@@ -1,26 +1,12 @@
 # Pytorch stuff
 
-
-"""
-Importage
-"""
-
-# from Model_pytorch import wwd_model_pytorch_new
-import matplotlib.pyplot as plt  # for plotting
-import numpy as np  # for numerical operations
-import pandas as pd  # for data manipulation
-import seaborn as sns  # for plotting
-import time  # for timer
-import torch
-import torch.optim as optim
-
-from torch.nn.parameter import Parameter
-
-import time  # for timer
-import torch
-from sklearn.metrics.pairwise import cosine_similarity
 import pickle
 
+# from Model_pytorch import wwd_model_pytorch_new
+import numpy as np  # for numerical operations
+import torch
+import torch.optim as optim
+from sklearn.metrics.pairwise import cosine_similarity
 from torch.nn.parameter import Parameter
 
 
@@ -63,13 +49,11 @@ class OutputNM:
 
 
 class ParamsJR:
-
     def __init__(self, model_name, **kwargs):
         param = None
 
         if model_name == 'WWD':
             param = {
-
                 "std_in": [0.02, 0],  # standard deviation of the Gaussian noise
                 "std_out": [0.02, 0],  # standard deviation of the Gaussian noise
                 # Parameters for the ODEs
@@ -101,7 +85,6 @@ class ParamsJR:
                 "dI": [0.087, 0],
 
                 # Output (BOLD signal)
-
                 "alpha": [0.32, 0],
                 "rho": [0.34, 0],
                 "k1": [2.38, 0],
@@ -115,18 +98,21 @@ class ParamsJR:
                 "mu": [0.5, 0]
 
             }
+
         elif model_name == "JR":
             param = {
-                "A ": [3.25, 0], "a": [100, 0.], "B": [22, 0], "b": [50, 0], "g": [1000, 0], \
-                "c1": [135, 0.], "c2": [135 * 0.8, 0.], "c3 ": [135 * 0.25, 0.], "c4": [135 * 0.25, 0.], \
-                "std_in": [100, 0], "vmax": [5, 0], "v0": [6, 0], "r": [0.56, 0], "y0": [2, 0], \
+                "A ": [3.25, 0], "a": [100, 0.], "B": [22, 0], "b": [50, 0], "g": [1000, 0],
+                "c1": [135, 0.], "c2": [135 * 0.8, 0.], "c3 ": [135 * 0.25, 0.], "c4": [135 * 0.25, 0.],
+                "std_in": [100, 0], "vmax": [5, 0], "v0": [6, 0], "r": [0.56, 0], "y0": [2, 0],
                 "mu": [.5, 0], "k": [5, 0], "cy0": [5, 0], "ki": [1, 0]
             }
+
         for var in param:
             setattr(self, var, param[var])
 
         for var in kwargs:
             setattr(self, var, kwargs[var])
+
         """self.A = A # magnitude of second order system for populations E and P
         self.a = a # decay rate of the 2nd order system for population E and P
         self.B = B # magnitude of second order system for population I
@@ -157,7 +143,7 @@ def sigmoid(x, vmax, v0, r):
 class RNNJANSEN(torch.nn.Module):
     """
     A module for forward model (JansenRit) to simulate a batch of EEG signals
-    Attibutes
+    Attributes
     ---------
     state_size : int
         the number of states in the JansenRit model
@@ -195,7 +181,7 @@ class RNNJANSEN(torch.nn.Module):
     def __init__(self, input_size: int, node_size: int,
                  batch_size: int, step_size: float, output_size: int, tr: float, sc: float, lm, dist: float,
                  fit_gains_flat: bool,
-                 fit_lfm_flat: bool, param: ParamsJR) -> None:
+                 fit_lfm_flat: bool, param: ParamsJR):
         """
         Parameters
         ----------
@@ -240,13 +226,13 @@ class RNNJANSEN(torch.nn.Module):
 
         # set model parameters (variables: need to calculate gradient) as Parameter others : tensor
         # set w_bb as Parameter if fit_gain is True
-        if self.fit_gains_flat == True:
+        if self.fit_gains_flat:
             self.w_bb = Parameter(torch.tensor(np.zeros((node_size, node_size)) + 0.05,
                                                dtype=torch.float32))  # connenction gain to modify empirical sc
         else:
             self.w_bb = torch.tensor(np.zeros((node_size, node_size)), dtype=torch.float32)
 
-        if self.fit_lfm_flat == True:
+        if self.fit_lfm_flat:
             self.lm = Parameter(torch.tensor(lm, dtype=torch.float32))  # leadfield matrix from sourced data to eeg
         else:
             self.lm = torch.tensor(lm, dtype=torch.float32)  # leadfield matrix from sourced data to eeg
