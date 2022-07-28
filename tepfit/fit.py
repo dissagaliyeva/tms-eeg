@@ -5,35 +5,34 @@
 Importage
 """
 
-#from Model_pytorch import wwd_model_pytorch_new
-import matplotlib.pyplot as plt # for plotting
-import numpy as np # for numerical operations
-import pandas as pd # for data manipulation
-import seaborn as sns # for plotting
-import time # for timer
+# from Model_pytorch import wwd_model_pytorch_new
+import matplotlib.pyplot as plt  # for plotting
+import numpy as np  # for numerical operations
+import pandas as pd  # for data manipulation
+import seaborn as sns  # for plotting
+import time  # for timer
 import torch
 import torch.optim as optim
 
 from torch.nn.parameter import Parameter
 
-import matplotlib.pyplot as plt # for plotting
-import numpy as np # for numerical operations
-import pandas as pd # for data manipulation
-import seaborn as sns # for plotting
-import time # for timer
+import time  # for timer
 import torch
-import torch.optim as optim
 from sklearn.metrics.pairwise import cosine_similarity
 import pickle
 
 from torch.nn.parameter import Parameter
 
-class OutputNM():
+
+class OutputNM:
     mode_all = ['train', 'test']
     stat_vars_all = ['m', 'v']
+    state_name = None
 
     def __init__(self, model_name, node_size, param, fit_weights=False, fit_lfm=False):
         self.loss = np.array([])
+        state_names = None
+
         if model_name == 'WWD':
             state_names = ['E', 'I', 'x', 'f', 'v', 'q']
             self.output_name = "bold"
@@ -55,7 +54,7 @@ class OutputNM():
                     setattr(self, var, [])
 
         self.weights = []
-        if model_name == 'JR' and fit_lfm == True:
+        if model_name == 'JR' and fit_lfm is True:
             self.leadfield = []
 
     def save(self, filename):
@@ -63,9 +62,11 @@ class OutputNM():
             pickle.dump(self, f)
 
 
-class ParamsJR():
+class ParamsJR:
 
     def __init__(self, model_name, **kwargs):
+        param = None
+
         if model_name == 'WWD':
             param = {
 
@@ -145,11 +146,12 @@ class ParamsJR():
         self.k = k"""
 
 
-def sys2nd(A, a,  u, x, v):
-    return A*a*u -2*a*v-a**2*x
+def sys2nd(A, a, u, x, v):
+    return A * a * u - 2 * a * v - a ** 2 * x
+
 
 def sigmoid(x, vmax, v0, r):
-    return vmax/(1+torch.exp(r*(v0-x)))
+    return vmax / (1 + torch.exp(r * (v0 - x)))
 
 
 class RNNJANSEN(torch.nn.Module):
@@ -191,8 +193,8 @@ class RNNJANSEN(torch.nn.Module):
     model_name = "JR"
 
     def __init__(self, input_size: int, node_size: int,
-                 batch_size: int, step_size: float, output_size: int, tr: float, sc: float, lm: float, dist: float,
-                 fit_gains_flat: bool, \
+                 batch_size: int, step_size: float, output_size: int, tr: float, sc: float, lm, dist: float,
+                 fit_gains_flat: bool,
                  fit_lfm_flat: bool, param: ParamsJR) -> None:
         """
         Parameters
@@ -330,9 +332,10 @@ class RNNJANSEN(torch.nn.Module):
         if self.sc.shape[0] > 1:
 
             # Update the Laplacian based on the updated connection gains w_bb.
-            w = torch.exp(self.w_bb) * torch.tensor(self.sc, dtype=torch.float32)  #5*(con_1+torch.tanh(self.w_bb)) * torch.tensor(self.sc, dtype=torch.float32)
-            #w = m(self.w_bb)
-            #w_n = 0.5 * (w + torch.transpose(w, 0, 1)) / torch.linalg.norm(0.5 * (w + torch.transpose(w, 0, 1)))
+            w = torch.exp(self.w_bb) * torch.tensor(self.sc,
+                                                    dtype=torch.float32)  # 5*(con_1+torch.tanh(self.w_bb)) * torch.tensor(self.sc, dtype=torch.float32)
+            # w = m(self.w_bb)
+            # w_n = 0.5 * (w + torch.transpose(w, 0, 1)) / torch.linalg.norm(0.5 * (w + torch.transpose(w, 0, 1)))
             w_n = torch.log1p(0.5 * (w + torch.transpose(w, 0, 1))) / torch.linalg.norm(
                 torch.log1p(0.5 * (w + torch.transpose(w, 0, 1))))
 
@@ -383,7 +386,7 @@ class RNNJANSEN(torch.nn.Module):
 
                 rM = sigmoid(E - I, self.vmax, self.v0, self.r)  # firing rate for Main population
                 rE = (noise_std_lb * con_1 + m(self.std_in)) * noiseE + (lb * con_1 + m(self.g)) * (
-                            LEd + 1 * torch.matmul(dg, E)) \
+                        LEd + 1 * torch.matmul(dg, E)) \
                      + (lb * con_1 + m(self.c2)) * sigmoid((lb * con_1 + m(self.c1)) * M, self.vmax, self.v0,
                                                            self.r)  # firing rate for Excitory population
                 rI = (lb * con_1 + m(self.c4)) * sigmoid((lb * con_1 + m(self.c3)) * M, self.vmax, self.v0,
@@ -398,13 +401,13 @@ class RNNJANSEN(torch.nn.Module):
                        + 0 * torch.sqrt(dt) * (1.0 * con_1 + m(self.std_in)) * noiseM
 
                 ddEv = Ev + dt * sys2nd(0 * con_1 + m(self.A), 1 * con_1 + m(self.a), \
-                                        (k_lb * con_1 + m(self.k)) *self.ki* u \
+                                        (k_lb * con_1 + m(self.k)) * self.ki * u \
                                         + u_2ndsys_ub * torch.tanh(rE / u_2ndsys_ub), E,
                                         Ev)  # (0.001*con_1+m_kw(self.kw))/torch.sum(0.001*con_1+m_kw(self.kw))*
 
                 ddIv = Iv + dt * sys2nd(0 * con_1 + m(self.B), 1 * con_1 + m(self.b), \
                                         +u_2ndsys_ub * torch.tanh(rI / u_2ndsys_ub), I, Iv) + 0 * torch.sqrt(dt) * (
-                                   1.0 * con_1 + m(self.std_in)) * noiseI
+                               1.0 * con_1 + m(self.std_in)) * noiseI
 
                 # Calculate the saturation for model states (for stability and gradient calculation).
                 E = ddE  # 1000*torch.tanh(ddE/1000)#torch.tanh(0.00001+torch.nn.functional.relu(ddE))
@@ -444,8 +447,6 @@ class RNNJANSEN(torch.nn.Module):
         next_state['Pv_batch'] = torch.cat(Mv_batch, axis=1)
 
         return next_state, hE
-
-
 
 
 class Costs:
@@ -539,7 +540,6 @@ class Costs:
             return self.cost_r(sim, emp)
 
 
-
 class Model_fitting:
     """
     Using ADAM and AutoGrad to fit JansenRit to empirical EEG
@@ -600,7 +600,7 @@ class Model_fitting:
         state_lb = 0.5
         w_cost = 10
 
-        epoch_min = 110  # run minimum epoch # part of stop criteria
+        epoch_min = 120  # run minimum epoch # part of stop criteria
         r_lb = 0.85  # lowest pearson correlation # part of stop criteria
 
         self.u = u
@@ -723,7 +723,6 @@ class Model_fitting:
                 elif self.model.model_name == 'JR':
                     loss = w_cost * self.cost.cost_eff(self.model, next_batch['eeg_batch'], ts_batch) + sum(loss_prior)
 
-
                 # Put the batch of the simulated EEG, E I M Ev Iv Mv in to placeholders for entire time-series.
                 for name in self.model.state_names + [self.output_sim.output_name]:
                     name_next = name + '_batch'
@@ -775,10 +774,13 @@ class Model_fitting:
             ts_sim = np.concatenate(tmp_ls, axis=1)
             fc_sim = np.corrcoef(ts_sim[:, 10:])
 
-            print('epoch: ', i_epoch, loss.detach().numpy())
+            # print results
+            corr_coef = np.corrcoef(fc_sim[mask_e], fc[mask_e])[0, 1]
+            cos_sim = np.diag(cosine_similarity(ts_sim, self.ts.mean(0))).mean()
 
-            print('epoch: ', i_epoch, np.corrcoef(fc_sim[mask_e], fc[mask_e])[0, 1], 'cos_sim: ',
-                  np.diag(cosine_similarity(ts_sim, self.ts.mean(0))).mean())
+            if i_epoch % 10 == 0:
+                print('epoch:', i_epoch, 'loss:', loss.detach().numpy())
+                print('\t\tCorrelation coefficient:', corr_coef, '\t\tcos_sim:', cos_sim, end='\n\n')
 
             for name in self.model.state_names + [self.output_sim.output_name]:
                 tmp_ls = getattr(self.output_sim, name + '_train')
@@ -792,7 +794,9 @@ class Model_fitting:
             self.output_sim.Pv_train = Mv_sim"""
             self.output_sim.loss = np.array(loss_his)
 
-            if i_epoch > epoch_min and np.corrcoef(fc_sim[mask_e], fc[mask_e])[0, 1] > r_lb:
+            if corr_coef > r_lb:
+                print(f'Model hit the target of 85% correlation coefficient @ {i_epoch} epoch with {corr_coef}'
+                      f'diagonal pearson correlation')
                 break
         # print('epoch: ', i_epoch, np.corrcoef(fc_sim[mask_e], fc[mask_e])[0, 1])
         self.output_sim.weights = np.array(fit_sc)
