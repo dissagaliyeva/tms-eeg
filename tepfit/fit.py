@@ -832,7 +832,10 @@ class Model_fitting:
 
         u_hat = np.zeros(
             (self.model.node_size, self.model.hidden_size, base_batch_num * self.model.batch_size + self.ts.shape[2]))
+        print(base_batch_num * self.model.batch_size)
+
         u_hat[:, :, base_batch_num * self.model.batch_size:] = self.u
+
 
         # Perform the training in batches.
 
